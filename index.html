@@ -386,14 +386,10 @@ tr:hover td{background:var(--row-hover);}
     </div>
     <div id="pane-register" class="tab-pane">
       <p class="help" style="background:var(--bg);padding:10px 12px;border-radius:8px;margin-bottom:12px;line-height:1.6">
-        &#128274; Register with email &amp; password. Percentile &amp; rank are <strong>locked</strong> after registration.
+        &#128274; Register with email &amp; password. You'll enter your percentile &amp; rank after login.
       </p>
       <label>Full Name</label><input type="text" id="rName" placeholder="Rahul Sharma">
       <label>Email</label><input type="email" id="rEmail" placeholder="rahul@example.com">
-      <div class="field-row">
-        <div><label>Percentile</label><input type="number" id="rPct" placeholder="92.5000" step="0.0001" min="0" max="100"></div>
-        <div><label>Rank</label><input type="number" id="rRank" placeholder="22500" min="1"></div>
-      </div>
       <div class="field-row">
         <div><label>Password</label><input type="password" id="rPwd" placeholder="min 6 chars"></div>
         <div><label>Confirm</label><input type="password" id="rCfm" placeholder="repeat"></div>
@@ -409,16 +405,42 @@ tr:hover td{background:var(--row-hover);}
 <div class="wrap">
   <div class="page-hdr">
     <div><div class="page-title" id="dashTitle">Welcome &#128075;</div><div class="muted" id="dashSub"></div></div>
-    <button class="btn btn-primary" onclick="startForm()">+ New Choice Form</button>
+    <button class="btn btn-primary" id="newFormBtn" onclick="startForm()">+ New Choice Form</button>
   </div>
+<!-- First-time score setup (shown only when percentile/rank = 0) -->
+<div id="dashScoreSetup" class="card" style="display:none;border:2px solid var(--brand);">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <div style="width:40px;height:40px;border-radius:12px;background:var(--brand-soft);display:grid;place-items:center;font-size:20px;flex-shrink:0">🎯</div>
+    <div>
+      <div style="font-family:'Poppins',sans-serif;font-weight:700;font-size:16px">Set Your MHT-CET Score</div>
+      <div class="muted">Enter your percentile and rank to unlock college recommendations</div>
+    </div>
+  </div>
+<div class="field-row">
+    <div><label>MHT-CET Percentile</label><input type="number" id="setupPct" placeholder="92.5000" step="0.0001" min="0" max="100"></div>
+    <div><label>MHT-CET Rank</label><input type="number" id="setupRank" placeholder="22500" min="1"></div>
+  </div>
+  <div style="margin:12px 0 4px;border-top:1px solid var(--stroke);padding-top:12px">
+    <div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:8px">&#127760; JEE Mains Score <span class="chip chip-gray" style="font-size:10px;margin-left:4px">optional</span></div>
+  </div>
+  <div class="field-row">
+    <div><label>JEE Percentile</label><input type="number" id="setupJeePct" placeholder="95.2500" step="0.0001" min="0" max="100"></div>
+    <div><label>JEE Rank (AIR)</label><input type="number" id="setupJeeRank" placeholder="5000" min="1"></div>
+  </div>
+  <p class="help">JEE scores are only needed for the All India seat form builder.</p>
+</div>
+
+<!-- Normal dashboard content (hidden until score is set) -->
+<div id="dashActionsCard">
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
       <h2 style="margin:0">Your Details</h2>
       <button class="btn btn-ghost btn-sm" onclick="openModal('m-reqchange')">&#9999;&#65039; Request Change</button>
     </div>
     <div class="info-grid" id="dashInfo"></div>
-    <p class="help" style="margin-top:10px">&#128274; Percentile &amp; rank are locked after registration. Contact support to update.</p>
+    <p class="help" style="margin-top:10px">&#128274; Percentile &amp; rank are locked. Contact support to update.</p>
   </div>
+</div>
   <!-- Quick Tools -->
   <div class="card">
     <h2>Quick Tools</h2>
@@ -430,11 +452,18 @@ tr:hover td{background:var(--row-hover);}
           <div class="muted">Build &amp; save your MHT-CET preference list</div>
         </div>
       </div>
-      <div class="tool-card" onclick="openCutoffChecker()">
+<div class="tool-card" onclick="openCutoffChecker()">
         <div class="tool-icon blue">&#128202;</div>
         <div>
           <div style="font-weight:700;font-size:14px">Cutoff Checker</div>
           <div class="muted">Search MHT-CET &amp; JEE Mains cutoffs by college</div>
+        </div>
+      </div>
+      <div class="tool-card" onclick="startJeeForm()">
+        <div class="tool-icon green">&#127760;</div>
+        <div>
+          <div style="font-weight:700;font-size:14px">JEE Mains Choice Form</div>
+          <div class="muted">Build your All India seat preference list via JEE score</div>
         </div>
       </div>
     </div>
@@ -603,7 +632,113 @@ tr:hover td{background:var(--row-hover);}
   <div id="fvBody"></div>
 </div>
 </div>
+<!-- ─── JEE STEP 1 ─── -->
+<div id="page-jee-step1" class="page">
+<div class="wrap-md">
+  <div id="jsb1"></div>
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <div style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:grid;place-items:center;font-size:18px;flex-shrink:0">&#127760;</div>
+      <div>
+        <h2 style="margin:0;color:#1d4ed8">JEE Mains — All India Seat Choice Form</h2>
+        <div class="muted">For AI (All India) seats via JEE Mains percentile</div>
+      </div>
+    </div>
+    <div style="background:var(--bg);border:1.5px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:13px;color:#1d4ed8;line-height:1.6">
+      &#128310; Colleges below are filtered from the JEE Mains cutoff data based on your JEE percentile. Aspirational colleges (up to +6 percentile) are also shown.
+    </div>
+    <label>Branches <span class="chip" id="jBCount" style="margin-left:6px;background:#eff6ff;color:#1d4ed8">0 selected</span></label>
+    <div class="b-chips" id="jBChips"></div>
+    <label style="margin-top:16px">Region (optional)</label>
+    <select id="jRegSel" style="margin-top:4px"><option value="">All Regions</option></select>
+    <div id="js1Err" class="err"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="showPage('dashboard')">&#8592; Back</button>
+      <button class="btn btn-primary" style="background:#1d4ed8;box-shadow:0 4px 14px rgba(29,78,216,.25)" onclick="jeeGoStep2()">View Colleges &rarr;</button>
+    </div>
+  </div>
+</div>
+</div>
 
+<!-- ─── JEE STEP 2 ─── -->
+<div id="page-jee-step2" class="page">
+<div class="wrap">
+  <div id="jsb2"></div>
+  <div class="asp-notice" id="jAspNotice" style="display:none;border-color:#3b82f6;color:#1d4ed8;background:#eff6ff">
+    &#11088; <div><strong>Aspirational colleges auto-placed at top!</strong> These have cutoffs above your JEE percentile — confirm before filling the official form.</div>
+  </div>
+  <div class="page-hdr">
+    <div><div class="page-title">Select JEE Colleges</div><div class="muted" id="js2Sub"></div></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="sel-count" id="jSelCount" style="background:#eff6ff;color:#1d4ed8">0 selected</span>
+    </div>
+  </div>
+  <div class="ctrl-row">
+    <div class="srch-wrap"><span class="srch-ico">&#128269;</span><input type="text" id="js2Srch" placeholder="Search college or branch…" oninput="jeeRenderGrid()"></div>
+    <select class="flt-sel" id="js2BF" onchange="jeeRenderGrid()"></select>
+    <select class="flt-sel" id="js2RF" onchange="jeeRenderGrid()">
+      <option value="">All Regions</option>
+    </select>
+    <select class="flt-sel" id="js2TF" onchange="jeeRenderGrid()">
+      <option value="">All Types</option>
+      <option value="elig">&#10003; Eligible</option>
+      <option value="asp">&#11088; Aspirational</option>
+    </select>
+  </div>
+  <div class="col-grid" id="jColGrid"></div>
+  <div class="grid-footer" id="jGridFtr"></div>
+  <div style="display:flex;justify-content:space-between;margin-top:20px;flex-wrap:wrap;gap:10px">
+    <button class="btn btn-ghost" onclick="showPage('jee-step1')">&#8592; Back</button>
+    <button class="btn btn-primary" style="background:#1d4ed8;box-shadow:0 4px 14px rgba(29,78,216,.25)" onclick="jeeGoStep3()">Build Preference List &rarr;</button>
+  </div>
+</div>
+</div>
+
+<!-- ─── JEE STEP 3 ─── -->
+<div id="page-jee-step3" class="page">
+<div class="wrap">
+  <div id="jsb3"></div>
+  <div class="page-hdr">
+    <div><div class="page-title">JEE Preference List</div><div class="muted">Drag to reorder &bull; Top = Priority 1 &bull; &#11088; = Aspirational</div></div>
+    <div style="display:flex;gap:7px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="showPage('jee-step2')">&#8592; Back</button>
+      <button class="btn btn-ghost btn-sm" onclick="jSaveDraft()">&#128190; Save Draft</button>
+      <button class="btn btn-primary btn-sm" style="background:#1d4ed8" onclick="jSaveAndPDF()">&#128196; Save &amp; PDF</button>
+    </div>
+  </div>
+  <div class="pref-layout">
+    <div>
+      <div class="pref-wrap">
+        <div class="pref-head">
+          <h3 style="margin:0">JEE Preferences <span class="chip" id="jPrefCount" style="margin-left:6px;background:#eff6ff;color:#1d4ed8">0</span></h3>
+          <button class="btn btn-ghost btn-xs" onclick="jSortByPct()">&#8595; Sort %ile</button>
+        </div>
+        <ul class="pref-list" id="jPrefList"></ul>
+        <div class="pref-foot">
+          <button class="btn btn-ghost btn-sm btn-full" onclick="openModal('m-jaddmore')">+ Add More Colleges</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="sugg-panel">
+        <div class="sugg-head" style="border-bottom:2px solid #bfdbfe"><h3 style="margin:0;color:#1d4ed8">&#128161; JEE Suggestions</h3><div class="muted" style="font-size:11px;margin-top:2px">Tap + to add</div></div>
+        <div id="jSuggPanel"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ─── JEE FORM VIEW ─── -->
+<div id="page-jee-formview" class="page">
+<div class="wrap-md">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <button class="btn btn-ghost btn-sm" onclick="showPage('dashboard')">&#8592; Dashboard</button>
+    <button class="btn btn-primary btn-sm" style="background:#1d4ed8" onclick="jPrintViewPDF()">&#128196; Download PDF</button>
+  </div>
+  <div id="jFvBody"></div>
+</div>
+</div>
 <!-- MODALS -->
 <div id="m-madd" class="overlay" onclick="closeOv(event,'m-madd')">
   <div class="modal modal-lg">
@@ -642,14 +777,25 @@ tr:hover td{background:var(--row-hover);}
     <div style="margin-top:12px;text-align:right"><button class="btn btn-primary btn-sm" onclick="closeModal('m-addmore')">Done</button></div>
   </div>
 </div>
-
+<div id="m-jaddmore" class="overlay" onclick="closeOv(event,'m-jaddmore')">
+  <div class="modal modal-lg">
+    <div class="modal-hd"><h2 style="margin:0;color:#1d4ed8">Add More JEE Colleges</h2><button class="modal-x" onclick="closeModal('m-jaddmore')">&#10005;</button></div>
+    <div class="ctrl-row">
+      <div class="srch-wrap" style="flex:1"><span class="srch-ico">&#128269;</span><input type="text" id="jamSrch" placeholder="Search college or branch…" oninput="jeeRenderAddMore()"></div>
+      <select class="flt-sel" id="jamBF" onchange="jeeRenderAddMore()"><option value="">All Branches</option></select>
+      <select class="flt-sel" id="jamRF" onchange="jeeRenderAddMore()"><option value="">All Regions</option></select>
+    </div>
+    <div class="madd-list" id="jamList"></div>
+    <div style="margin-top:12px;text-align:right"><button class="btn btn-primary btn-sm" style="background:#1d4ed8" onclick="closeModal('m-jaddmore')">Done</button></div>
+  </div>
+</div>
 <div id="m-edituser" class="overlay" onclick="closeOv(event,'m-edituser')">
   <div class="modal">
     <div class="modal-hd"><h2 style="margin:0">Edit User</h2><button class="modal-x" onclick="closeModal('m-edituser')">&#10005;</button></div>
     <input type="hidden" id="editUID">
     <label>Full Name</label><input type="text" id="editName">
     <label>Email</label><input type="email" id="editEmail">
-    <div class="field-row">
+<div class="field-row">
       <div><label>Percentile</label><input type="number" id="editPct" step="0.0001"></div>
       <div><label>Rank</label><input type="number" id="editRank"></div>
     </div>
@@ -688,6 +834,13 @@ var ADMIN_USERS_CACHE=[];
 var FORMS_CACHE={};
 var JEE_DB=[];        // JEE Mains cutoff data
 var CUTOFF_TAB='all'; // current tab in cutoff checker
+// ─── JEE FORM WIZARD STATE ───
+var JFS=null;         // JEE Form Session (mirrors FS for MHT-CET)
+var JEE_GRID_PG=0;
+var JEE_ALL_BR=[];    // unique branches from jee_data
+var JEE_ALL_REGIONS=[];
+var JEE_SORT_I=null;
+var JEE_VF_ID=null;
 
 // ═══ FEMALE COLLEGE DETECTION ═══
 // Colleges with institute codes ending in 'F' are female-only
@@ -839,19 +992,23 @@ async function loadData(){
       if(jr.ok){
         var jjson=await jr.json();
         var jraw=Array.isArray(jjson)?jjson:(jjson['Cleaned_MHT-CET_Cutoff_Data (1)']||jjson.data||[]);
-        JEE_DB=jraw.map(function(row){
+       JEE_DB=jraw.map(function(row,idx){
           return {
+            _jcc:'JEE_'+String(row['Choice Code']||idx),
             collegeCode:String(row['College Code']||''),
             instituteName:(row['Institute Name']||'').replace(/^\d+\s*-\s*/,''),
             branchName:(row['Branch Name']||'').replace(/\n/g,' '),
             jeePercentile:fP(row['JEE Percentile']||row['All India Merit']||0),
             allIndiaMerit:row['All India Merit']||'',
-            seatType:row['Seat Type']||'',
+            seatType:row['Seat Type']||'AI',
             type:row['Type']||'',
             region:row['Region']||'',
+            choiceCode:String(row['Choice Code']||''),
             collegeUrl:row['College Url']||''
           };
         }).filter(function(r){return r.instituteName;});
+        JEE_ALL_BR=[...new Set(JEE_DB.map(function(r){return r.branchName;}).filter(Boolean))].sort();
+        JEE_ALL_REGIONS=[...new Set(JEE_DB.map(function(r){return r.region;}).filter(Boolean))].sort();
       }
     }catch(e){
       // JEE data optional, continue without it
@@ -900,16 +1057,18 @@ function updTopbar(){
       '<span class="user-name">'+esc(CU.name)+'</span>'+adminChip+
     '</div>'+
     '<button class="btn btn-ghost btn-sm logout-btn" onclick="logout()">Logout</button>';
-  nav.innerHTML=isAdmin
+nav.innerHTML=isAdmin
     ?'<button class="nav-btn" onclick="showPage(\'admin\')">&#128737; Admin</button>'
     :'<button class="nav-btn" onclick="showPage(\'dashboard\')">&#127968; Home</button>'+
-     '<button class="nav-btn" onclick="startForm()">+ New Form</button>'+
-     '<button class="nav-btn" onclick="openCutoffChecker()">&#128202; Cutoff Checker</button>';
-  mobBody.innerHTML=
+     '<button class="nav-btn" onclick="startForm()">+ MHT-CET Form</button>'+
+     '<button class="nav-btn" onclick="startJeeForm()">+ JEE Form</button>'+
+     '<button class="nav-btn" onclick="openCutoffChecker()">&#128202; Cutoffs</button>';
+mobBody.innerHTML=
     (isAdmin
       ?'<button class="nav-btn" onclick="showPage(\'admin\');toggleMob()">&#128737; Admin Panel</button>'
       :'<button class="nav-btn" onclick="showPage(\'dashboard\');toggleMob()">&#127968; Home</button>'+
-       '<button class="nav-btn" onclick="startForm();toggleMob()">&#10133; New Choice Form</button>'+
+       '<button class="nav-btn" onclick="startForm();toggleMob()">&#10133; MHT-CET Form</button>'+
+       '<button class="nav-btn" onclick="startJeeForm();toggleMob()">&#127760; JEE Mains Form</button>'+
        '<button class="nav-btn" onclick="openCutoffChecker();toggleMob()">&#128202; Cutoff Checker</button>')+
     '<button class="nav-btn" style="color:var(--red)" onclick="logout();toggleMob()">&#128682; Logout</button>';
   mobFooter.innerHTML=
@@ -1079,13 +1238,11 @@ function authTab(t){
 // ═══ REGISTER ═══
 async function doRegister(){
   var name=gv('rName').trim(),email=gv('rEmail').trim().toLowerCase();
-  var pct=fP(gv('rPct')),rank=fI(gv('rRank'));
+  var pct=0, rank=0;
   var pwd=gv('rPwd'),cfm=gv('rCfm');
   hide('rErr');
   if(!name) return se('rErr','Full name required.');
   if(!email||!email.includes('@')) return se('rErr','Valid email required.');
-  if(pct<=0||pct>100) return se('rErr','Percentile must be 0–100.');
-  if(rank<1) return se('rErr','Valid rank required.');
   if(pwd.length<6) return se('rErr','Password min 6 chars.');
   if(pwd!==cfm) return se('rErr','Passwords do not match.');
   var btn=document.querySelector('#pane-register .btn-primary');
@@ -1097,7 +1254,25 @@ async function doRegister(){
   fetchForms(CU.id).then(renderFormHistory);
   toast('Welcome, '+CU.name+'!','ok');
 }
-
+async function saveSetupScore(){
+  var pct=fP(gv('setupPct')), rank=fI(gv('setupRank'));
+  hide('setupErr');
+  if(pct<=0||pct>100) return se('setupErr','Enter a valid percentile (0–100).');
+  if(rank<1) return se('setupErr','Enter a valid rank.');
+  var btn=document.querySelector('#dashScoreSetup .btn-primary');
+  btn.disabled=true; btn.textContent='Saving…';
+var jeePct=fP(gv('setupJeePct'))||0;
+  var jeeRank=fI(gv('setupJeeRank'))||0;
+  var res=await api('updateUser',{id:CU.id, name:CU.name, email:CU.email, percentile:pct, rank:rank, jeePercentile:jeePct, jeeRank:jeeRank});
+  btn.disabled=false; btn.textContent='Save Score & Continue →';
+  if(!res.ok) return se('setupErr', res.error||'Failed to save. Try again.');
+  CU.percentile=pct; CU.rank=rank; LS.setS(CU);
+  if(jeePct>0){ CU.jeePercentile=jeePct; }
+  if(jeeRank>0){ CU.jeeRank=jeeRank; }
+  toast('Score saved! Welcome to College Simplified 🎉','ok');
+  renderDash();
+  fetchForms(CU.id).then(renderFormHistory);
+}
 // ═══ LOGIN ═══
 async function doLogin(){
   var email=gv('lEmail').trim().toLowerCase(),pwd=gv('lPwd');
@@ -1129,12 +1304,24 @@ function renderDash(){
   var u=CU;
   document.getElementById('dashTitle').textContent='Welcome, '+u.name+' 👋';
   document.getElementById('dashSub').textContent='College Simplified — MHT-CET Dashboard';
-  document.getElementById('dashInfo').innerHTML=
+document.getElementById('dashInfo').innerHTML=
     '<div class="info-block"><div class="info-label">Full Name</div><div class="info-value" style="font-size:15px">'+esc(u.name)+'</div></div>'+
     '<div class="info-block"><div class="info-label">Email</div><div class="info-value" style="font-size:13px">'+esc(u.email)+'</div></div>'+
-    '<div class="info-block"><div class="info-label">Percentile</div><div class="info-value">'+f4(u.percentile)+'</div></div>'+
-    '<div class="info-block"><div class="info-label">Rank</div><div class="info-value">'+fR(u.rank)+'</div></div>';
-  renderFormHistory(getCachedForms(u.id));
+    '<div class="info-block"><div class="info-label">MHT-CET Percentile</div><div class="info-value">'+f4(u.percentile)+'</div></div>'+
+    '<div class="info-block"><div class="info-label">MHT-CET Rank</div><div class="info-value">'+fR(u.rank)+'</div></div>'+
+    (u.jeePercentile?'<div class="info-block" style="border:1.5px solid #bfdbfe"><div class="info-label" style="color:#1d4ed8">&#127760; JEE Percentile</div><div class="info-value" style="color:#1d4ed8">'+f4(u.jeePercentile)+'</div></div>':'')+
+    (u.jeeRank?'<div class="info-block" style="border:1.5px solid #bfdbfe"><div class="info-label" style="color:#1d4ed8">&#127760; JEE Rank (AIR)</div><div class="info-value" style="color:#1d4ed8">'+fR(u.jeeRank)+'</div></div>':'');
+  var needsScore = !u.percentile || !u.rank || u.percentile<=0 || u.rank<=0;
+  var nb=document.getElementById('newFormBtn');
+if(nb) nb.disabled=needsScore;
+if(needsScore){
+  document.getElementById('dashScoreSetup').style.display='block';
+  document.getElementById('dashActionsCard').style.display='none';
+} else {
+  document.getElementById('dashScoreSetup').style.display='none';
+  document.getElementById('dashActionsCard').style.display='block';
+}
+renderFormHistory(getCachedForms(u.id));
 }
 
 function renderFormHistory(forms){
@@ -1151,13 +1338,18 @@ function renderFormHistory(forms){
       '<div style="flex:1;min-width:0">'+
         '<div style="font-weight:600;font-size:14px">'+esc(f.category)+' &bull; '+esc(bl.slice(0,3).join(', '))+(bl.length>3?'…':'')+'</div>'+
         '<div class="muted">'+dt+' &bull; '+(f.prefList||[]).length+' prefs'+
+        (f.type==='jee'?' &bull; <span class="chip" style="font-size:10px;background:#eff6ff;color:#1d4ed8">JEE AI</span>':'')+
         (f.draft?' &bull; <span class="chip chip-orange" style="font-size:10px">Draft</span>':
                  ' &bull; <span class="chip chip-green" style="font-size:10px">Saved</span>')+
         '</div>'+
       '</div>'+
       '<div style="display:flex;gap:6px;flex-shrink:0">'+
-        '<button class="btn btn-ghost btn-sm" onclick="viewForm(\''+f.id+'\')">View</button>'+
-        '<button class="btn btn-primary btn-sm" onclick="editForm(\''+f.id+'\')">Edit</button>'+
+        (f.type==='jee'
+        ?'<button class="btn btn-ghost btn-sm" onclick="jViewForm(\''+f.id+'\')">View</button>'
+        :'<button class="btn btn-ghost btn-sm" onclick="viewForm(\''+f.id+'\')">View</button>')+
+      (f.type==='jee'
+        ?'<button class="btn btn-primary btn-sm" style="background:#1d4ed8" onclick="editJeeForm(\''+f.id+'\')">Edit</button>'
+        :'<button class="btn btn-primary btn-sm" onclick="editForm(\''+f.id+'\')">Edit</button>')+
         '<button class="btn btn-danger btn-sm" onclick="confirmDeleteForm(\''+f.id+'\')" title="Delete form">&#128465;</button>'+
       '</div>'+
     '</div>';
@@ -1186,7 +1378,20 @@ function editForm(fid){
   }
   FS=JSON.parse(JSON.stringify(f));renderS1();showPage('step1');
 }
-
+function editJeeForm(fid){
+  var forms=getCachedForms(CU.id);
+  var f=forms.find(function(f){return f.id===fid;});
+  if(!f){
+    fetchForms(CU.id).then(function(fresh){
+      var ff=fresh.find(function(x){return x.id===fid;});
+      if(!ff) return toast('Form not found.','err');
+      JFS=JSON.parse(JSON.stringify(ff));
+      renderJeeS1();showPage('jee-step1');
+    }); return;
+  }
+  JFS=JSON.parse(JSON.stringify(f));
+  renderJeeS1();showPage('jee-step1');
+}
 // ═══ STEP 1 ═══
 function renderS1(){
   document.getElementById('sb1').innerHTML=stepBar(1);
@@ -1647,7 +1852,495 @@ function toast(msg,type){
   w.appendChild(t);
   setTimeout(function(){t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(function(){t.remove();},300);},type==='err'?5000:3000);
 }
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  JEE MAINS CHOICE FORM WIZARD                               ║
+// ╚══════════════════════════════════════════════════════════════╝
 
+// ─── JEE Step Bar ───
+function jeeStepBar(cur){
+  var steps=['Select Branches','Pick Colleges','Preference List'];
+  var h='<div class="step-bar">';
+  steps.forEach(function(s,i){
+    var n=i+1,cls=n<cur?'done':n===cur?'current':'todo';
+    var dot='<div class="step-dot '+cls+'" style="'+(cls!=='todo'?'background:#1d4ed8;':'')+
+      (cls==='current'?'box-shadow:0 0 0 4px #dbeafe;':'')+'">'+(n<cur?'✓':n)+'</div>';
+    h+='<div class="step-col">'+dot+'<div class="step-label">'+s+'</div></div>';
+    if(i<steps.length-1) h+='<div class="step-line'+(n<cur?' done':'')+'" style="'+(n<cur?'background:#1d4ed8;':'')+'"></div>';
+  });
+  return h+'</div>';
+}
+
+// ─── Start JEE form ───
+function startJeeForm(){
+  if(!CU) return toast('Please log in first.','err');
+  if(!JEE_DB.length) return toast('JEE data not loaded. Check jee_data.json.','err');
+  var jeePerc = fP(CU.jeePercentile||CU.percentile||0);
+  JFS={
+    id:uid(),
+    userId:CU.id,
+    type:'jee',
+    branches:[],
+    region:'',
+    selected:[],
+    prefList:[],
+    draft:true,
+    createdAt:new Date().toISOString(),
+    jeePercentile: jeePerc
+  };
+  renderJeeS1();
+  showPage('jee-step1');
+}
+
+// ─── JEE Step 1 render ───
+function renderJeeS1(){
+  document.getElementById('jsb1').innerHTML=jeeStepBar(1);
+  // Populate branch chips
+  document.getElementById('jBChips').innerHTML=JEE_ALL_BR.map(function(b){
+    return '<div class="bchip'+(JFS.branches.includes(b)?' sel':'')+
+      '" style="'+(JFS.branches.includes(b)?'border-color:#3b82f6;color:#1d4ed8;background:#eff6ff;':'')+
+      '" onclick="jToggleB(this,\''+esc(b)+'\')">'+esc(b)+'</div>';
+  }).join('');
+  // Populate region selector
+  var rs=document.getElementById('jRegSel');
+  rs.innerHTML='<option value="">All Regions</option>'+JEE_ALL_REGIONS.map(function(r){
+    return '<option value="'+esc(r)+'"'+(JFS.region===r?' selected':'')+'>'+esc(r)+'</option>';
+  }).join('');
+  updJBC();
+}
+
+function jToggleB(el,b){
+  el.classList.toggle('sel');
+  el.style.borderColor=el.classList.contains('sel')?'#3b82f6':'';
+  el.style.color=el.classList.contains('sel')?'#1d4ed8':'';
+  el.style.background=el.classList.contains('sel')?'#eff6ff':'';
+  var i=JFS.branches.indexOf(b);
+  if(i>-1) JFS.branches.splice(i,1); else JFS.branches.push(b);
+  updJBC();
+}
+function updJBC(){document.getElementById('jBCount').textContent=JFS.branches.length+' selected';}
+
+function jeeGoStep2(){
+  hide('js1Err');
+  if(!JFS.branches.length) return se('js1Err','Select at least one branch.');
+  JFS.region=document.getElementById('jRegSel').value||'';
+  // Populate branch filter for step 2
+  var bf=document.getElementById('js2BF');
+  bf.innerHTML='<option value="">All Selected Branches</option>'+JFS.branches.map(function(b){
+    return '<option value="'+esc(b)+'">'+esc(b)+'</option>';
+  }).join('');
+  // Region filter
+  var rf=document.getElementById('js2RF');
+  rf.innerHTML='<option value="">All Regions</option>'+JEE_ALL_REGIONS.map(function(r){
+    return '<option value="'+esc(r)+'"'+(JFS.region===r?' selected':'')+'>'+esc(r)+'</option>';
+  }).join('');
+  var eligible=jeeGetElig();
+  var asp=jeeGetAsp();
+  document.getElementById('jAspNotice').style.display=asp.length?'flex':'none';
+  document.getElementById('js2Sub').textContent=eligible.length+' eligible · '+asp.length+' aspirational';
+  JEE_GRID_PG=0;
+  jeeRenderGrid();
+  document.getElementById('jsb2').innerHTML=jeeStepBar(2);
+  showPage('jee-step2');
+}
+
+// ─── JEE eligibility helpers ───
+function jeeGetUserPct(){
+  // Use stored JEE percentile if available, fallback to CU.percentile
+  return fP(JFS.jeePercentile||CU.jeePercentile||CU.percentile||0);
+}
+function jeePool(){
+  var region=gv('js2RF')||JFS.region||'';
+  return JEE_DB.filter(function(r){
+    var bMatch=JFS.branches.includes(r.branchName);
+    var rMatch=!region||r.region===region;
+    return bMatch&&rMatch;
+  });
+}
+function jeeGetElig(){
+  var up=jeeGetUserPct();
+  return JEE_DB.filter(function(r){
+    return JFS.branches.includes(r.branchName)&&r.jeePercentile<=up&&(!JFS.region||r.region===JFS.region);
+  });
+}
+function jeeGetAsp(){
+  var up=jeeGetUserPct();
+  return JEE_DB.filter(function(r){
+    return JFS.branches.includes(r.branchName)&&r.jeePercentile>up&&r.jeePercentile<=up+6&&(!JFS.region||r.region===JFS.region);
+  });
+}
+
+function jeeFiltPool(){
+  var q=(gv('js2Srch')||'').toLowerCase();
+  var bf=gv('js2BF')||'';
+  var rf=gv('js2RF')||'';
+  var tf=gv('js2TF')||'';
+  var up=jeeGetUserPct();
+  var pool;
+  if(tf==='asp') pool=JEE_DB.filter(function(r){return JFS.branches.includes(r.branchName)&&r.jeePercentile>up&&r.jeePercentile<=up+6;});
+  else if(tf==='elig') pool=JEE_DB.filter(function(r){return JFS.branches.includes(r.branchName)&&r.jeePercentile<=up;});
+  else pool=JEE_DB.filter(function(r){return JFS.branches.includes(r.branchName)&&(r.jeePercentile<=up||r.jeePercentile<=up+6);});
+  if(bf) pool=pool.filter(function(r){return r.branchName===bf;});
+  if(rf) pool=pool.filter(function(r){return r.region===rf;});
+  if(q) pool=pool.filter(function(r){
+    return (r.instituteName||'').toLowerCase().includes(q)||
+           (r.branchName||'').toLowerCase().includes(q)||
+           (r.collegeCode||'').includes(q)||
+           (r.region||'').toLowerCase().includes(q);
+  });
+  return pool.slice().sort(function(a,b){return b.jeePercentile-a.jeePercentile;});
+}
+
+// ─── JEE Grid render (Step 2) ───
+function jeeRenderGrid(){
+  var pool=jeeFiltPool();
+  var up=jeeGetUserPct();
+  var slice=pool.slice(0,(JEE_GRID_PG+1)*PGS);
+  var ss=new Set((JFS.selected||[]).map(function(c){return c._jcc;}));
+  var g=document.getElementById('jColGrid');
+  if(!pool.length){
+    g.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-icon">🔍</div><h3>No colleges found</h3><p>Adjust filters or select more branches.</p></div>';
+    document.getElementById('jGridFtr').innerHTML='';
+    return;
+  }
+  g.innerHTML=slice.map(function(r){
+    var sel=ss.has(r._jcc);
+    var asp=r.jeePercentile>up;
+    var h='<div class="cc'+(sel?' sel':'')+(asp?' asp':'')+'" onclick="jToggleC(\''+esc(r._jcc)+'\')"'
+      +' style="'+(sel?'border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.18);':'')
+      +(asp?'border-color:#f59e0b;':'')+'">';
+    if(sel) h+='<div class="cc-sel-badge" style="background:#1d4ed8">✓ Selected</div>';
+    h+='<div class="cc-hdr"><div class="cc-name">'+esc(r.instituteName)+'</div>';
+    h+='<div class="cc-chk" style="'+(sel?'background:#1d4ed8;border-color:#1d4ed8;color:#fff;':'')+'">'+
+      (sel?'✓':'')+'</div></div>';
+    h+='<div class="cc-branch" style="margin-bottom:6px">'+esc(r.branchName)+'</div>';
+    h+='<div class="cc-meta">';
+    h+='<span class="cc-pct" style="color:'+( asp?'var(--orange)':'#1d4ed8')+'">'
+      +r.jeePercentile.toFixed(4)+'<small>% cutoff</small></span>';
+    h+='<span class="chip" style="font-size:10px;background:'+(asp?'var(--orange-bg)':'#eff6ff')+';color:'+(asp?'var(--orange)':'#1d4ed8')+'">'
+      +(asp?'⭐ Aspirational':'✓ Eligible')+'</span>';
+    if(r.region) h+='<span class="chip chip-gray" style="font-size:10px">'+esc(r.region)+'</span>';
+    h+='<span class="chip chip-gray" style="font-size:10px">AI Seat</span>';
+    h+='</div>';
+    h+='<div class="cc-foot"><span>Code: '+esc(r.collegeCode)+'</span>';
+    if(r.allIndiaMerit) h+='<span>AIR: '+esc(r.allIndiaMerit.toString().split(' ')[0])+'</span>';
+    h+='</div></div>';
+    return h;
+  }).join('');
+  var shown=slice.length,tot=pool.length,more=tot-shown;
+  document.getElementById('jGridFtr').innerHTML=
+    '<span class="muted">Showing '+shown+' of '+tot+'</span>'+
+    (more>0?'<button class="btn btn-ghost btn-sm" onclick="JEE_GRID_PG++;jeeRenderGrid()">Load more ('+Math.min(PGS,more)+' more)</button>':'');
+  document.getElementById('jSelCount').textContent=(JFS.selected||[]).length+' selected';
+}
+
+function jToggleC(code){
+  var row=JEE_DB.find(function(r){return r._jcc===code;});if(!row)return;
+  if(!JFS.selected)JFS.selected=[];
+  var idx=JFS.selected.findIndex(function(c){return c._jcc===code;});
+  if(idx>-1){JFS.selected.splice(idx,1);toast('Removed.','info');}
+  else{JFS.selected.push(row);toast('Added: '+row.instituteName.split(',')[0],'ok');}
+  jeeRenderGrid();
+}
+
+// ─── JEE Step 3 ───
+function jeeGoStep3(){
+  if(!(JFS.selected||[]).length) return toast('Select at least one college.','err');
+  document.getElementById('jsb3').innerHTML=jeeStepBar(3);
+  var up=jeeGetUserPct();
+  if(!JFS.prefList)JFS.prefList=[];
+  var sel=JFS.selected;
+  var aspI=sel.filter(function(c){return c.jeePercentile>up;}).sort(function(a,b){return b.jeePercentile-a.jeePercentile;});
+  var restI=sel.filter(function(c){return c.jeePercentile<=up;}).sort(function(a,b){return b.jeePercentile-a.jeePercentile;});
+  var exC=new Set(JFS.prefList.map(function(c){return c._jcc;}));
+  var aL=JFS.prefList.filter(function(c){return c.jeePercentile>up;});
+  var rL=JFS.prefList.filter(function(c){return c.jeePercentile<=up;});
+  var nA=aspI.filter(function(c){return !exC.has(c._jcc);});
+  var nR=restI.filter(function(c){return !exC.has(c._jcc);});
+  JFS.prefList=[].concat(aL,nA,rL,nR).filter(function(c){return sel.find(function(s){return s._jcc===c._jcc;});});
+  // Populate add-more modal filters
+  document.getElementById('jamBF').innerHTML='<option value="">All Branches</option>'+JFS.branches.map(function(b){return '<option value="'+esc(b)+'">'+esc(b)+'</option>';}).join('');
+  document.getElementById('jamRF').innerHTML='<option value="">All Regions</option>'+JEE_ALL_REGIONS.map(function(r){return '<option value="'+esc(r)+'">'+esc(r)+'</option>';}).join('');
+  jeeRenderPref();
+  jeeRenderSugg();
+  showPage('jee-step3');
+  setTimeout(jeeInitSort,120);
+}
+
+// ─── JEE Pref list render ───
+function jeeRenderPref(){
+  var el=document.getElementById('jPrefList');
+  var up=jeeGetUserPct();
+  document.getElementById('jPrefCount').textContent=JFS.prefList.length;
+  if(!JFS.prefList.length){
+    el.innerHTML='<div class="empty" style="padding:28px"><div class="empty-icon">📋</div><p>No colleges yet.</p></div>';
+    return;
+  }
+  el.innerHTML=JFS.prefList.map(function(c,i){
+    var asp=c.jeePercentile>up;
+    var code=esc(c._jcc);
+    var h='<li class="pref-item'+(asp?' asp-item':'')+'" data-code="'+code+'">';
+    h+='<span class="drag-h" title="Drag to reorder">'+GRIP_ICO+'</span>';
+    h+='<div class="pref-num'+(i<3?' t3':'')+'" style="background:#eff6ff;color:#1d4ed8">'+(i+1)+'</div>';
+    h+='<div class="pref-info">';
+    h+='<div class="pref-name">'+esc(c.instituteName)+'</div>';
+    h+='<div class="pref-sub">'+esc(c.branchName)+' · '+esc(c.region||'AI')+' · '+c.jeePercentile.toFixed(4)+'%'+(asp?' ⭐':'')+'</div>';
+    h+='</div>';
+    h+='<button class="pref-del desk" onclick="jRemPref(\''+code+'\')">✕</button>';
+    // Mobile
+    h+='<div class="pi-top"><div class="pi-name">'+esc(c.instituteName)+'</div>';
+    h+='<button class="pref-del mob" onclick="jRemPref(\''+code+'\');event.stopPropagation()">✕</button></div>';
+    h+='<div class="pi-branch">'+esc(c.branchName)+'</div>';
+    h+='<div class="pi-meta">';
+    h+='<span class="chip" style="font-size:10.5px;background:'+(asp?'var(--orange-bg)':'#eff6ff')+';color:'+(asp?'var(--orange)':'#1d4ed8')+'">'+(asp?'⭐ Aspirational':'✓ Eligible')+'</span>';
+    if(c.region) h+='<span class="chip chip-gray" style="font-size:10.5px">'+esc(c.region)+'</span>';
+    h+='<span style="font-size:12.5px;font-weight:700;color:#1d4ed8">'+c.jeePercentile.toFixed(4)+'%</span>';
+    h+='</div>';
+    h+='<div class="pi-foot">';
+    if(c.allIndiaMerit) h+='<span class="muted" style="font-size:11px">AIR: '+esc(c.allIndiaMerit.toString().split(' ')[0])+'</span>';
+    h+='</div>';
+    h+='</li>';
+    return h;
+  }).join('');
+}
+
+function jRemPref(code){
+  JFS.prefList=JFS.prefList.filter(function(c){return c._jcc!==code;});
+  JFS.selected=(JFS.selected||[]).filter(function(c){return c._jcc!==code;});
+  jeeRenderPref();jeeRenderSugg();
+  document.getElementById('jPrefCount').textContent=JFS.prefList.length;
+  setTimeout(jeeInitSort,80);toast('Removed.','info');
+}
+function jSortByPct(){
+  jSyncOrder();
+  JFS.prefList.sort(function(a,b){return b.jeePercentile-a.jeePercentile;});
+  jeeRenderPref();jeeRenderSugg();setTimeout(jeeInitSort,80);toast('Sorted by percentile.','info');
+}
+function jSyncOrder(){
+  var items=document.querySelectorAll('#jPrefList .pref-item');
+  if(!items.length)return;
+  var ord=[];
+  items.forEach(function(el){
+    var c=JFS.prefList.find(function(p){return p._jcc===el.dataset.code;});
+    if(c)ord.push(c);
+  });
+  JFS.prefList=ord;
+}
+function jeeInitSort(){
+  if(JEE_SORT_I){try{JEE_SORT_I.destroy();}catch(e){}}
+  var list=document.getElementById('jPrefList');if(!list)return;
+  JEE_SORT_I=Sortable.create(list,{
+    animation:180,handle:'.drag-h',ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',
+    fallbackTolerance:3,
+    onEnd:function(){
+      jSyncOrder();
+      document.querySelectorAll('#jPrefList .pref-num').forEach(function(el,i){
+        el.textContent=i+1;
+        el.className='pref-num'+(i<3?' t3':'');
+        el.style.background='#eff6ff';el.style.color='#1d4ed8';
+      });
+    }
+  });
+}
+
+// ─── JEE Suggestions ───
+function jeeRenderSugg(){
+  var up=jeeGetUserPct();
+  var pc=new Set(JFS.prefList.map(function(c){return c._jcc;}));
+  var regionF=JFS.region||'';
+  var asp=JEE_DB.filter(function(r){
+    return JFS.branches.includes(r.branchName)&&
+      r.jeePercentile>up&&r.jeePercentile<=up+6&&
+      !pc.has(r._jcc)&&(!regionF||r.region===regionF);
+  }).sort(function(a,b){return a.jeePercentile-b.jeePercentile;});
+  var safe=JEE_DB.filter(function(r){
+    return JFS.branches.includes(r.branchName)&&
+      r.jeePercentile<up-2&&r.jeePercentile>=up-18&&
+      !pc.has(r._jcc)&&(!regionF||r.region===regionF);
+  }).sort(function(a,b){return b.jeePercentile-a.jeePercentile;});
+  var html='';
+  if(asp.length) html+='<div class="sugg-sec">⭐ Aspirational</div>'+asp.slice(0,5).map(function(c){return jSuggRow(c,true);}).join('');
+  if(safe.length) html+='<div class="sugg-sec">🛡️ Safe Picks</div>'+safe.slice(0,8).map(function(c){return jSuggRow(c,false);}).join('');
+  if(!html) html='<div class="empty" style="padding:18px"><p>All matching colleges are in your list 🎉</p></div>';
+  document.getElementById('jSuggPanel').innerHTML=html;
+}
+function jSuggRow(c,asp){
+  return '<div class="sugg-item"><div class="sugg-info">'+
+    '<div class="sugg-name">'+esc(c.instituteName.split(',')[0])+'</div>'+
+    '<div class="sugg-sub">'+esc(c.branchName.replace(/\n/g,' '))+' · <span style="color:'+(asp?'var(--orange)':'#1d4ed8')+'">'+c.jeePercentile.toFixed(4)+'%</span></div>'+
+    '</div><button class="sugg-btn" style="color:#1d4ed8;border-color:#bfdbfe" onclick="jAddSugg(\''+esc(c._jcc)+'\')">+ Add</button></div>';
+}
+function jAddSugg(code){
+  var row=JEE_DB.find(function(r){return r._jcc===code;});if(!row)return;
+  if(JFS.prefList.find(function(c){return c._jcc===code;})) return toast('Already in list.','info');
+  JFS.prefList.push(row);if(!JFS.selected)JFS.selected=[];JFS.selected.push(row);
+  jeeRenderPref();jeeRenderSugg();
+  document.getElementById('jPrefCount').textContent=JFS.prefList.length;
+  setTimeout(jeeInitSort,80);toast('Added: '+row.instituteName.split(',')[0],'ok');
+}
+
+// ─── JEE Add More modal ───
+function jeeRenderAddMore(){
+  var q=(gv('jamSrch')||'').toLowerCase();
+  var bf=gv('jamBF')||'';
+  var rf=gv('jamRF')||'';
+  var up=jeeGetUserPct();
+  var pc=new Set(JFS.prefList.map(function(c){return c._jcc;}));
+  var pool=JEE_DB.filter(function(r){
+    return JFS.branches.includes(r.branchName)&&!pc.has(r._jcc);
+  });
+  if(bf) pool=pool.filter(function(r){return r.branchName===bf;});
+  if(rf) pool=pool.filter(function(r){return r.region===rf;});
+  if(q) pool=pool.filter(function(r){
+    return (r.instituteName||'').toLowerCase().includes(q)||
+           (r.branchName||'').toLowerCase().includes(q)||
+           (r.region||'').toLowerCase().includes(q);
+  });
+  pool.sort(function(a,b){return b.jeePercentile-a.jeePercentile;});
+  var el=document.getElementById('jamList');
+  if(!pool.length){el.innerHTML='<div class="empty" style="padding:18px"><p class="muted">No more colleges.</p></div>';return;}
+  el.innerHTML=pool.slice(0,60).map(function(r){
+    var asp=r.jeePercentile>up;
+    return '<div class="madd-row">'+
+      '<div class="madd-info">'+
+        '<div class="madd-name">'+esc(r.instituteName)+'</div>'+
+        '<div class="madd-sub">'+esc(r.branchName.replace(/\n/g,' '))+' · <span style="color:'+(asp?'var(--orange)':'#1d4ed8')+'">'+r.jeePercentile.toFixed(4)+'%</span>'+(r.region?' · '+esc(r.region):'')+'</div>'+
+      '</div>'+
+      '<span class="madd-pct" style="color:#1d4ed8">'+r.jeePercentile.toFixed(2)+'%</span>'+
+      '<button class="sugg-btn" style="color:#1d4ed8;border-color:#bfdbfe" onclick="jAddSugg(\''+esc(r._jcc)+'\');jeeRenderAddMore()">+ Add</button>'+
+    '</div>';
+  }).join('');
+}
+
+// ─── JEE Save / Draft / PDF ───
+function jSaveDraft(){
+  jSyncOrder();
+  jSaveFS(true).then(function(){
+    toast('JEE Draft saved to Dashboard!','ok');
+    renderFormHistory(getCachedForms(CU.id));
+  });
+}
+function jSaveAndPDF(){
+  jSyncOrder();
+  if(!JFS.prefList.length) return toast('Add at least one college.','err');
+  jSaveFS(false).then(function(){
+    toast('Saved! Generating PDF…','ok');
+    renderFormHistory(getCachedForms(CU.id));
+    genJeePDF();
+  });
+}
+async function jSaveFS(draft){
+  var form=Object.assign({},JFS,{userId:CU.id,createdAt:JFS.createdAt||new Date().toISOString(),draft:draft,type:'jee'});
+  JFS.createdAt=form.createdAt;
+  await saveFormToSheets(form);
+}
+
+// ─── JEE PDF generation ───
+async function genJeePDF(ovr){
+  try{await loadJsPDF();}catch(e){return toast('PDF library failed to load.','err');}
+  var f=ovr||JFS;
+  var u=ovr?(ADMIN_USERS_CACHE.find(function(u){return u.id===f.userId;})||CU):CU;
+  var jsPDF=window.jspdf.jsPDF;
+  var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
+  var W=595,H=842,M=36;
+  // Header — blue for JEE
+  doc.setFillColor(29,78,216);doc.rect(0,0,W,76,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(16);
+  doc.text('College Simplified — JEE Mains (All India) Preference Form',W/2,28,{align:'center'});
+  doc.setFont('helvetica','normal');doc.setFontSize(9);
+  doc.text('collegesimplified.in  |  support@collegesimplified.in',W/2,44,{align:'center'});
+  doc.text('Generated: '+new Date().toLocaleString('en-IN'),W/2,60,{align:'center'});
+  doc.setTextColor(30,30,30);doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text('Student Details',M,96);
+  doc.autoTable({startY:104,head:[],body:[
+    ['Full Name',u.name||''],
+    ['Email',u.email||''],
+    ['JEE Percentile',fP(f.jeePercentile||u.percentile).toFixed(4)],
+    ['Branches',(f.branches||[]).join(', ')],
+    ['Region',f.region||'All India'],
+    ['Total Preferences',String((f.prefList||[]).length)]
+  ],
+  theme:'plain',styles:{fontSize:9,cellPadding:{top:4,bottom:4,left:6,right:6}},
+  columnStyles:{0:{fontStyle:'bold',cellWidth:120,textColor:[80,80,80],fillColor:[240,245,255]},1:{textColor:[30,30,30]}},
+  tableLineColor:[200,215,255],tableLineWidth:0.3,margin:{left:M,right:M}});
+  var y=doc.lastAutoTable.finalY+14;
+  doc.setDrawColor(29,78,216);doc.setLineWidth(1);doc.line(M,y,W-M,y);
+  doc.setFont('helvetica','bold');doc.setFontSize(11);
+  doc.text('JEE Mains Preference List ('+((f.prefList||[]).length)+' entries — All India Seats)',M,y+14);
+  doc.autoTable({startY:y+22,
+    head:[['#','Code','Institute','Branch','Region','JEE %ile','AIR']],
+    body:(f.prefList||[]).map(function(c,i){
+      return [
+        String(i+1),
+        c.collegeCode||'',
+        c.instituteName||'',
+        (c.branchName||'').replace(/\n/g,' '),
+        c.region||'AI',
+        fP(c.jeePercentile).toFixed(4),
+        c.allIndiaMerit?c.allIndiaMerit.toString().split(' ')[0]:''
+      ];
+    }),
+    theme:'striped',
+    headStyles:{fillColor:[29,78,216],textColor:[255,255,255],fontStyle:'bold',fontSize:8,cellPadding:5},
+    styles:{fontSize:7.5,cellPadding:4,overflow:'linebreak'},
+    columnStyles:{0:{cellWidth:16,halign:'center'},1:{cellWidth:46,halign:'center'},2:{cellWidth:160},3:{cellWidth:120},4:{cellWidth:54},5:{cellWidth:62,halign:'right'},6:{cellWidth:50,halign:'right'}},
+    alternateRowStyles:{fillColor:[245,249,255]},
+    tableLineColor:[200,215,255],tableLineWidth:0.2,margin:{left:M,right:M}});
+  var pages=doc.internal.getNumberOfPages();
+  for(var i=1;i<=pages;i++){
+    doc.setPage(i);
+    doc.setFillColor(240,245,255);doc.rect(0,H-28,W,28,'F');
+    doc.setDrawColor(200,215,255);doc.setLineWidth(0.3);doc.line(0,H-28,W,H-28);
+    doc.setFontSize(7.5);doc.setTextColor(100,120,180);
+    doc.text('College Simplified — collegesimplified.in — JEE Mains All India Seats — Reference only.',M,H-10);
+    doc.text('Page '+i+' of '+pages,W-M,H-10,{align:'right'});
+  }
+  var sn=(u.name||'user').replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'');
+  doc.save('CollegeSimplified-JEE-AllIndia-'+sn+'-'+Date.now()+'.pdf');
+}
+
+// ─── JEE Form view from dashboard ───
+function jViewForm(fid){
+  var forms=getCachedForms(CU.id);
+  var f=forms.find(function(f){return f.id===fid;});
+  if(!f) return toast('Not found.','err');
+  JEE_VF_ID=fid;
+  var u=ADMIN_USERS_CACHE.find(function(u){return u.id===f.userId;})||CU;
+  var rows=(f.prefList||[]).map(function(c,i){
+    return '<tr>'+
+      '<td><div class="pref-num'+(i<3?' t3':'')+'" style="width:22px;height:22px;font-size:11px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:#eff6ff;color:#1d4ed8">'+(i+1)+'</div></td>'+
+      '<td style="font-size:13px;max-width:200px;white-space:normal">'+esc(c.instituteName)+'</td>'+
+      '<td style="font-size:12px;max-width:160px;white-space:normal">'+esc((c.branchName||'').replace(/\n/g,' '))+'</td>'+
+      '<td><span class="chip chip-gray" style="font-size:10px">'+esc(c.region||'AI')+'</span></td>'+
+      '<td style="font-weight:700;color:#1d4ed8">'+fP(c.jeePercentile).toFixed(4)+'</td>'+
+      '<td>'+(c.allIndiaMerit?esc(c.allIndiaMerit.toString().split(' ')[0]):'—')+'</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('jFvBody').innerHTML=
+    '<div class="form-banner" style="background:linear-gradient(135deg,#1d4ed8,#1e40af)">'+
+      '<h2>JEE Mains All India Seat Preference — College Simplified</h2>'+
+      '<div style="opacity:.85;font-size:13px;margin-top:3px">JEE %ile: '+fP(f.jeePercentile).toFixed(4)+' · '+new Date(f.createdAt).toLocaleString('en-IN')+' · '+(f.prefList||[]).length+' preferences</div>'+
+    '</div>'+
+    '<div class="card"><h2>Student Details</h2><div class="info-grid">'+
+      '<div class="info-block"><div class="info-label">Name</div><div class="info-value" style="font-size:15px">'+esc(u.name)+'</div></div>'+
+      '<div class="info-block"><div class="info-label">Email</div><div class="info-value" style="font-size:13px">'+esc(u.email)+'</div></div>'+
+      '<div class="info-block"><div class="info-label">JEE Percentile</div><div class="info-value" style="color:#1d4ed8">'+fP(f.jeePercentile).toFixed(4)+'</div></div>'+
+      '<div class="info-block"><div class="info-label">Region</div><div class="info-value" style="font-size:14px">'+esc(f.region||'All India')+'</div></div>'+
+    '</div></div>'+
+    '<div class="card" style="padding:0;overflow:hidden">'+
+      '<div style="padding:13px 18px;border-bottom:1px solid var(--stroke);background:#eff6ff">'+
+        '<h2 style="margin:0;color:#1d4ed8">JEE Preference List ('+(f.prefList||[]).length+')</h2>'+
+      '</div>'+
+      '<div class="tbl-wrap"><table>'+
+        '<thead><tr><th>Priority</th><th>Institute</th><th>Branch</th><th>Region</th><th>JEE %ile</th><th>AIR</th></tr></thead>'+
+        '<tbody>'+rows+'</tbody>'+
+      '</table></div>'+
+    '</div>';
+  showPage('jee-formview');
+}
+function jPrintViewPDF(){
+  var f=getCachedForms(CU.id).find(function(f){return f.id===JEE_VF_ID;});
+  if(f) genJeePDF(f);
+}
 // ═══ INIT ═══
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',loadData);}else{loadData();}
 </script>
