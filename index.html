@@ -268,7 +268,23 @@ tr:hover td{background:var(--row-hover);}
 .save-indicator{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);padding:4px 10px;border-radius:999px;background:var(--bg);border:1px solid var(--stroke);}
 .save-indicator.saving{color:var(--orange);}
 .save-indicator.saved{color:var(--green);}
-
+/* ─── BRANCH GROUP PICKER ─── */
+.brgroup{margin-bottom:10px;border:1.5px solid var(--stroke);border-radius:12px;overflow:hidden;background:var(--card);}
+.brgroup-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:var(--th);user-select:none;transition:background .15s;}
+.brgroup-hdr:hover{background:var(--row-hover);}
+.brgroup-hdr-left{flex:1;display:flex;align-items:center;gap:8px;min-width:0;}
+.brgroup-title{font-weight:700;font-size:13px;color:var(--ink2);}
+.brgroup-count{font-size:11px;color:var(--muted);background:var(--bg);border-radius:999px;padding:2px 8px;border:1px solid var(--stroke);}
+.brgroup-arrow{color:var(--muted);font-size:12px;transition:transform .2s;flex-shrink:0;}
+.brgroup.open .brgroup-arrow{transform:rotate(90deg);}
+.brgroup-body{display:none;padding:10px 12px;background:var(--card);}
+.brgroup.open .brgroup-body{display:flex;flex-wrap:wrap;gap:7px;}
+.brgroup-selall{padding:5px 12px;border-radius:999px;border:1.5px dashed var(--brand);font-size:12px;font-weight:600;color:var(--brand);background:var(--brand-soft);cursor:pointer;transition:.15s;white-space:nowrap;}
+.brgroup-selall:hover{background:var(--brand);color:#fff;}
+.region-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;margin-bottom:4px;align-items:center;}
+.region-chip{padding:6px 14px;border-radius:999px;border:1.5px solid var(--stroke);font-size:12.5px;font-weight:600;cursor:pointer;background:var(--inp);color:var(--ink2);transition:.18s;user-select:none;}
+.region-chip:hover{border-color:var(--brand);color:var(--brand);}
+.region-chip.sel{background:var(--brand-soft);border-color:var(--brand);color:var(--brand);}
 /* ─── CUTOFF CHECKER ─── */
 .cutoff-hero{background:linear-gradient(135deg,var(--brand) 0%,#b91c1c 100%);border-radius:16px;padding:28px;margin-bottom:20px;color:#fff;}
 .cutoff-hero h2{color:#fff;font-size:clamp(16px,3vw,20px);margin-bottom:6px;}
@@ -427,7 +443,10 @@ tr:hover td{background:var(--row-hover);}
     <div><label>JEE Percentile</label><input type="number" id="setupJeePct" placeholder="95.2500" step="0.0001" min="0" max="100"></div>
     <div><label>JEE Rank (AIR)</label><input type="number" id="setupJeeRank" placeholder="5000" min="1"></div>
   </div>
-  <p class="help">JEE scores are only needed for the All India seat form builder.</p>
+<button class="btn btn-primary btn-full" style="margin-top:14px" onclick="saveSetupScore()">
+  Save Scores
+</button>
+<p class="help">&#128310; JEE scores are <strong>required</strong> to use the JEE Mains Choice Form tool. MHT-CET scores are required for the main choice form.</p>
 </div>
 
 <!-- Normal dashboard content (hidden until score is set) -->
@@ -522,8 +541,11 @@ tr:hover td{background:var(--row-hover);}
     <p class="muted" style="margin-bottom:16px">Select your seat category and the branches you are interested in.</p>
     <label>Seat Category</label>
     <select id="catSel"><option value="">&#8212; Select Category &#8212;</option></select>
-    <label style="margin-top:18px">Branches <span class="chip" id="bCount" style="margin-left:6px">0 selected</span></label>
-    <div class="b-chips" id="bChips"></div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+      <label style="margin:0">Branches <span class="chip" id="bCount" style="margin-left:6px">0 selected</span></label>
+      <button class="btn btn-ghost btn-xs" onclick="selectAllBranches()" id="selAllBtn">Select All Branches</button>
+    </div>
+    <div id="bChips"></div>
     <div id="s1Err" class="err"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap">
       <button class="btn btn-ghost" onclick="showPage('dashboard')">&#8592; Back</button>
@@ -546,9 +568,12 @@ tr:hover td{background:var(--row-hover);}
       <button class="btn btn-ghost btn-sm" onclick="openModal('m-madd')">+ Manual Add</button>
     </div>
   </div>
-  <div class="ctrl-row">
+<div class="ctrl-row">
     <div class="srch-wrap"><span class="srch-ico">&#128269;</span><input type="text" id="s2Srch" placeholder="Search college or branch&hellip;" oninput="renderGrid()"></div>
     <select class="flt-sel" id="s2BF" onchange="renderGrid()"></select>
+    <select class="flt-sel" id="s2RF" onchange="renderGrid()">
+      <option value="">All Regions</option>
+    </select>
     <select class="flt-sel" id="s2TF" onchange="renderGrid()">
       <option value="">All Types</option>
       <option value="elig">&#10003; Eligible</option>
@@ -825,10 +850,73 @@ tr:hover td{background:var(--row-hover);}
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  PASTE YOUR APPS SCRIPT WEB APP URL BELOW                       ║
 // ╚══════════════════════════════════════════════════════════════════╝
-var API_URL = 'https://script.google.com/macros/s/AKfycbxeTWOe-v_lP-1WcgBd8LYMKc10g5cSkZuEOY9qKeaVGgzGeILtEucUvfSQfih8wVnK/exec';
+var API_URL = 'https://script.google.com/macros/s/AKfycbxklMQ-UJ6juQVh9KWXM-f0XGiRuMbiEoOzg0avvHFL34C_ZCg7CRAFsvGzD0_CQpCx/exec';
 
 // ═══ STATE ═══
 var DB=[], ALL_BR=[], ALL_ST=[], FS=null, GRID_PG=0, sortI=null, VF_ID=null;
+
+// ─── BRANCH GROUPS ───
+var BRANCH_GROUPS=[
+  {
+    label:'💻 Computer Science & IT',
+    icon:'💻',
+    keywords:['Computer','Information Technology','Cyber','Data Science','Software','Artificial Intelligence','Machine Learning','Internet of Things','IoT','5G','VLSI','Cloud','Blockchain']
+  },
+  {
+    label:'⚡ Electrical & Electronics',
+    icon:'⚡',
+    keywords:['Electrical','Electronics','Telecommunication','Instrumentation','Control','Power','VLSI','Communication Engg','Communication Engineering']
+  },
+  {
+    label:'⚙️ Mechanical & Production',
+    icon:'⚙️',
+    keywords:['Mechanical','Production','Manufacturing','Automobile','Automotive','Robotics','Mechatronics','Industrial','Automation','Rail','Sandwich']
+  },
+  {
+    label:'🏗️ Civil & Structural',
+    icon:'🏗️',
+    keywords:['Civil','Structural','Planning','Environmental','Infrastructure','Survey']
+  },
+  {
+    label:'🧪 Chemical & Process',
+    icon:'🧪',
+    keywords:['Chemical','Petro','Petroleum','Pharmaceutical','Polymer','Plastic','Paint','Oil','Rubber','Dye','Textile Chemistry','Surfactant','Oleochemical','Fine Chemical']
+  },
+  {
+    label:'🧬 Bio & Biomedical',
+    icon:'🧬',
+    keywords:['Bio Medical','Bio Technology','Biomedical','Pharmaceutical','Food','Dyestuff','Paper','Pulp']
+  },
+  {
+    label:'🏭 Other Engineering',
+    icon:'🏭',
+    keywords:['Mining','Metallurgy','Material','Safety','Fire','Printing','Packing','Surface Coating','Man Made Textile','Fibre','Textile Engineering','Textile Technology','Technical Textile','Fashion']
+  }
+];
+
+var REGION_MAP={
+  '1':'Amravati',
+  '2':'Aurangabad',
+  '3':'Mumbai/Navi Mumbai',
+  '4':'Nagpur',
+  '5':'Kolhapur',
+  '6':'Pune'
+};
+
+function getBranchGroup(branchName){
+  var b=branchName.toLowerCase();
+  for(var i=0;i<BRANCH_GROUPS.length;i++){
+    var grp=BRANCH_GROUPS[i];
+    for(var j=0;j<grp.keywords.length;j++){
+      if(b.includes(grp.keywords[j].toLowerCase())) return i;
+    }
+  }
+  return BRANCH_GROUPS.length; // "Other" group
+}
+
+function getRegionCode(instCode){
+  return String(instCode||'').trim().charAt(0)||'';
+}
 var PGS=48, CU=null;
 var ADMIN_USERS_CACHE=[];
 var FORMS_CACHE={};
@@ -1256,20 +1344,29 @@ async function doRegister(){
 }
 async function saveSetupScore(){
   var pct=fP(gv('setupPct')), rank=fI(gv('setupRank'));
-  hide('setupErr');
+  var jeePct=fP(gv('setupJeePct'))||0;
+  var jeeRank=fI(gv('setupJeeRank'))||0;
+  
   if(pct<=0||pct>100) return se('setupErr','Enter a valid percentile (0–100).');
   if(rank<1) return se('setupErr','Enter a valid rank.');
+  
   var btn=document.querySelector('#dashScoreSetup .btn-primary');
   btn.disabled=true; btn.textContent='Saving…';
-var jeePct=fP(gv('setupJeePct'))||0;
-  var jeeRank=fI(gv('setupJeeRank'))||0;
-  var res=await api('updateUser',{id:CU.id, name:CU.name, email:CU.email, percentile:pct, rank:rank, jeePercentile:jeePct, jeeRank:jeeRank});
-  btn.disabled=false; btn.textContent='Save Score & Continue →';
+  
+  var res=await api('updateUser',{
+    id:CU.id, name:CU.name, email:CU.email,
+    percentile:pct, rank:rank,
+    jeePercentile:jeePct, jeeRank:jeeRank
+  });
+  
+  btn.disabled=false; btn.textContent='Save Scores';
   if(!res.ok) return se('setupErr', res.error||'Failed to save. Try again.');
-  CU.percentile=pct; CU.rank=rank; LS.setS(CU);
-  if(jeePct>0){ CU.jeePercentile=jeePct; }
-  if(jeeRank>0){ CU.jeeRank=jeeRank; }
-  toast('Score saved! Welcome to College Simplified 🎉','ok');
+  
+  // Update CU from server response and persist to localStorage
+  CU = Object.assign(CU, res.data);
+  LS.setS(CU);
+  
+  toast('Scores saved! 🎉','ok');
   renderDash();
   fetchForms(CU.id).then(renderFormHistory);
 }
@@ -1311,9 +1408,36 @@ document.getElementById('dashInfo').innerHTML=
     '<div class="info-block"><div class="info-label">MHT-CET Rank</div><div class="info-value">'+fR(u.rank)+'</div></div>'+
     (u.jeePercentile?'<div class="info-block" style="border:1.5px solid #bfdbfe"><div class="info-label" style="color:#1d4ed8">&#127760; JEE Percentile</div><div class="info-value" style="color:#1d4ed8">'+f4(u.jeePercentile)+'</div></div>':'')+
     (u.jeeRank?'<div class="info-block" style="border:1.5px solid #bfdbfe"><div class="info-label" style="color:#1d4ed8">&#127760; JEE Rank (AIR)</div><div class="info-value" style="color:#1d4ed8">'+fR(u.jeeRank)+'</div></div>':'');
-  var needsScore = !u.percentile || !u.rank || u.percentile<=0 || u.rank<=0;
-  var nb=document.getElementById('newFormBtn');
+var needsScore = !u.percentile || !u.rank || u.percentile<=0 || u.rank<=0;
+var needsJee = !u.jeePercentile || !u.jeeRank || u.jeePercentile<=0 || u.jeeRank<=0;
+var nb=document.getElementById('newFormBtn');
 if(nb) nb.disabled=needsScore;
+// Disable JEE form button if JEE score missing
+var jeeBtn=document.querySelector('.tool-card[onclick="startJeeForm()"]');
+if(jeeBtn){
+  if(needsJee){
+    jeeBtn.style.opacity='0.5';
+    jeeBtn.style.pointerEvents='none';
+    jeeBtn.style.cursor='not-allowed';
+    jeeBtn.title='Please set your JEE Mains score first';
+    // Add badge if not already there
+    if(!jeeBtn.querySelector('.jee-lock-badge')){
+      var badge=document.createElement('span');
+      badge.className='jee-lock-badge chip chip-orange';
+      badge.style.cssText='position:absolute;top:10px;right:10px;font-size:10px';
+      badge.textContent='⚠ Score needed';
+      jeeBtn.style.position='relative';
+      jeeBtn.appendChild(badge);
+    }
+  } else {
+    jeeBtn.style.opacity='';
+    jeeBtn.style.pointerEvents='';
+    jeeBtn.style.cursor='';
+    jeeBtn.title='';
+    var lb=jeeBtn.querySelector('.jee-lock-badge');
+    if(lb) lb.remove();
+  }
+}
 if(needsScore){
   document.getElementById('dashScoreSetup').style.display='block';
   document.getElementById('dashActionsCard').style.display='none';
@@ -1395,21 +1519,143 @@ function editJeeForm(fid){
 // ═══ STEP 1 ═══
 function renderS1(){
   document.getElementById('sb1').innerHTML=stepBar(1);
-  var SEP={GOPENS:'GOPENS — General Open (Govt)',GSCS:'GSCS — SC (Govt)',GSTS:'GSTS — ST (Govt)',GVJS:'GVJS — VJ/NT-A (Govt)',GOBCS:'GOBCS — OBC (Govt)',LOPENS:'LOPENS — Open (Private)',LSCS:'LSCS — SC (Private)',LSTS:'LSTS — ST (Private)',LOBCS:'LOBCS — OBC (Private)',MI:'MI — Minority',TFW:'TFW — Tuition Fee Waiver'};
+  var SEP={GOPENS:'GOPENS — General Open (Govt)',GSCS:'GSCS — SC (Govt)',GSTS:'GSTS — ST (Govt)',GVJS:'GVJS — VJ/NT-A (Govt)',GOBCS:'GOBCS — OBC (Govt)',GOPENS_TFWS:'GOPENS_TFWS — Open TFW (Govt)',LOPENS:'LOPENS — Open (Private)',LSCS:'LSCS — SC (Private)',LSTS:'LSTS — ST (Private)',LOBCS:'LOBCS — OBC (Private)',MI:'MI — Minority',TFW:'TFW — Tuition Fee Waiver'};
   document.getElementById('catSel').innerHTML='<option value="">— Select Category —</option>'+ALL_ST.map(function(s){return '<option value="'+esc(s)+'"'+(FS.category===s?' selected':'')+'>'+esc(SEP[s]||s)+'</option>';}).join('');
-  document.getElementById('bChips').innerHTML=ALL_BR.map(function(b){return '<div class="bchip'+(FS.branches.includes(b)?' sel':'')+'" onclick="toggleB(this,\''+esc(b)+'\')">'+esc(b)+'</div>';}).join('');
+  renderBranchGroups();
   updBC();
 }
-function toggleB(el,b){el.classList.toggle('sel');var i=FS.branches.indexOf(b);if(i>-1)FS.branches.splice(i,1);else FS.branches.push(b);updBC();}
+
+function renderBranchGroups(){
+  // Build group → branches map
+  var grouped={}; // index → []
+  var otherKey=BRANCH_GROUPS.length;
+  ALL_BR.forEach(function(b){
+    var g=getBranchGroup(b);
+    if(!grouped[g]) grouped[g]=[];
+    grouped[g].push(b);
+  });
+
+  var html='';
+  // Render each defined group
+  for(var i=0;i<=BRANCH_GROUPS.length;i++){
+    var branches=grouped[i]||[];
+    if(!branches.length) continue;
+    var grp=BRANCH_GROUPS[i]||{label:'🔧 Other Engineering',icon:'🔧'};
+    var selCount=branches.filter(function(b){return FS.branches.includes(b);}).length;
+    var allSel=selCount===branches.length && branches.length>0;
+    html+='<div class="brgroup'+(selCount>0?' open':'')+'" id="brgrp-'+i+'">';
+    html+='<div class="brgroup-hdr" onclick="toggleBrGroup('+i+')">';
+    html+='<div class="brgroup-hdr-left">';
+    html+='<span class="brgroup-title">'+esc(grp.label)+'</span>';
+    html+='<span class="brgroup-count" id="brgrp-cnt-'+i+'">'+selCount+'/'+branches.length+'</span>';
+    html+='</div>';
+    html+='<button class="brgroup-selall" onclick="selectAllInGroup(event,'+i+')" title="'+(allSel?'Deselect all':'Select all in this group')+'">'+(allSel?'✓ All selected':'Select all')+'</button>';
+    html+='<span class="brgroup-arrow">▶</span>';
+    html+='</div>';
+    html+='<div class="brgroup-body">';
+    branches.forEach(function(b){
+      html+='<div class="bchip'+(FS.branches.includes(b)?' sel':'')+'" onclick="toggleB(this,\''+esc(b.replace(/'/g,"\\'"))+'\')">'+esc(b)+'</div>';
+    });
+    html+='</div>';
+    html+='</div>';
+  }
+  document.getElementById('bChips').innerHTML=html;
+}
+
+function toggleBrGroup(i){
+  var el=document.getElementById('brgrp-'+i);
+  if(el) el.classList.toggle('open');
+}
+
+function selectAllInGroup(e,i){
+  e.stopPropagation();
+  var grpEl=document.getElementById('brgrp-'+i);
+  if(!grpEl) return;
+  var chips=grpEl.querySelectorAll('.bchip');
+  var branches=[];
+  chips.forEach(function(c){branches.push(c.textContent.trim());});
+  var allSel=branches.every(function(b){return FS.branches.includes(b);});
+  if(allSel){
+    // Deselect all in group
+    branches.forEach(function(b){
+      var idx=FS.branches.indexOf(b);
+      if(idx>-1) FS.branches.splice(idx,1);
+    });
+    chips.forEach(function(c){c.classList.remove('sel');});
+  } else {
+    // Select all in group
+    branches.forEach(function(b){
+      if(!FS.branches.includes(b)) FS.branches.push(b);
+    });
+    chips.forEach(function(c){c.classList.add('sel');});
+  }
+  updBC();
+  // Re-render just the count + button text for this group
+  var cnt=grpEl.querySelector('#brgrp-cnt-'+i);
+  var btn=grpEl.querySelector('.brgroup-selall');
+  var newSel=FS.branches.filter(function(b){return branches.includes(b);}).length;
+  if(cnt) cnt.textContent=newSel+'/'+branches.length;
+  if(btn) btn.textContent=(newSel===branches.length?'✓ All selected':'Select all');
+}
+
+function toggleB(el,b){
+  el.classList.toggle('sel');
+  var i=FS.branches.indexOf(b);
+  if(i>-1) FS.branches.splice(i,1); else FS.branches.push(b);
+  updBC();
+  // Update group count badge
+  renderBranchGroupCounts();
+}
+
+function renderBranchGroupCounts(){
+  for(var i=0;i<=BRANCH_GROUPS.length;i++){
+    var grpEl=document.getElementById('brgrp-'+i);
+    if(!grpEl) continue;
+    var chips=grpEl.querySelectorAll('.bchip');
+    var total=chips.length;
+    var selCount=0;
+    chips.forEach(function(c){if(c.classList.contains('sel'))selCount++;});
+    var cnt=grpEl.querySelector('#brgrp-cnt-'+i);
+    var btn=grpEl.querySelector('.brgroup-selall');
+    if(cnt) cnt.textContent=selCount+'/'+total;
+    if(btn) btn.textContent=(selCount===total&&total>0?'✓ All selected':'Select all');
+  }
+}
+
 function updBC(){document.getElementById('bCount').textContent=FS.branches.length+' selected';}
+function selectAllBranches(){
+  var btn=document.getElementById('selAllBtn');
+  var allSel=(FS.branches.length===ALL_BR.length);
+  if(allSel){
+    FS.branches=[];
+    document.querySelectorAll('#bChips .bchip').forEach(function(c){c.classList.remove('sel');});
+    if(btn) btn.textContent='Select All Branches';
+  } else {
+    FS.branches=ALL_BR.slice();
+    document.querySelectorAll('#bChips .bchip').forEach(function(c){c.classList.add('sel');});
+    if(btn) btn.textContent='Deselect All';
+  }
+  renderBranchGroupCounts();
+  updBC();
+}
 function goStep2(){
   var cat=document.getElementById('catSel').value;
   hide('s1Err');
   if(!cat) return se('s1Err','Please select a seat category.');
   if(!FS.branches.length) return se('s1Err','Please select at least one branch.');
   FS.category=cat;
-  var bf=document.getElementById('s2BF');
+var bf=document.getElementById('s2BF');
   bf.innerHTML='<option value="">All Selected Branches</option>'+FS.branches.map(function(b){return '<option value="'+esc(b)+'">'+esc(b)+'</option>';}).join('');
+
+  // Populate region filter from available colleges
+  var rf=document.getElementById('s2RF');
+  var usedRegions={};
+  DB.filter(function(r){return r['Seat Type']===FS.category&&FS.branches.includes(r.Branch);}).forEach(function(r){
+    var code=getRegionCode(r['Institute Code']);
+    if(code&&REGION_MAP[code]) usedRegions[code]=REGION_MAP[code];
+  });
+  rf.innerHTML='<option value="">All Regions</option>'+Object.keys(usedRegions).sort().map(function(k){return '<option value="'+k+'">'+esc(usedRegions[k])+'</option>';}).join('');
+
   document.getElementById('aspNotice').style.display=getAsp().length?'flex':'none';
   document.getElementById('s2Sub').textContent='Category: '+cat+' · '+getElig().length+' eligible colleges found';
   GRID_PG=0;renderGrid();
@@ -1423,6 +1669,7 @@ function getAsp(){return DB.filter(function(r){return r['Seat Type']===FS.catego
 function filtPool(){
   var q=(gv('s2Srch')||'').toLowerCase();
   var bf=gv('s2BF')||'';
+  var rf=gv('s2RF')||'';
   var tf=gv('s2TF')||'';
   var customs=(FS.selected||[]).filter(function(c){return c._custom;});
   var pool;
@@ -1432,6 +1679,7 @@ function filtPool(){
   else pool=[].concat(getElig(),getAsp());
   customs.forEach(function(c){if(!pool.find(function(p){return p._cc===c._cc;}))pool.push(c);});
   if(bf) pool=pool.filter(function(r){return r.Branch===bf;});
+  if(rf) pool=pool.filter(function(r){return getRegionCode(r['Institute Code'])===rf;});
   if(q) pool=pool.filter(function(r){return (r.Institute||'').toLowerCase().includes(q)||(r.Branch||'').toLowerCase().includes(q)||(r['Institute Code']||'').toString().includes(q);});
   return pool.sort(function(a,b){return b._pct-a._pct;});
 }
@@ -1453,7 +1701,8 @@ function renderGrid(){
     h+='<span class="chip '+(asp?'chip-orange':'chip-green')+'" style="font-size:10px">'+(asp?'⭐ Aspirational':'✓ Eligible')+'</span>';
     if(female) h+='<span class="chip chip-pink" style="font-size:10px">&#9792; Female</span>';
     h+='<span class="chip chip-gray" style="font-size:10px">'+esc(r['Seat Type'])+'</span></div>';
-    h+='<div class="cc-foot"><span>Code: '+esc(r['Institute Code'])+'</span><span>Rank: '+fR(r._rank)+'</span></div></div>';
+var regionLabel=REGION_MAP[getRegionCode(r['Institute Code'])]||'';
+    h+='<div class="cc-foot"><span>Code: '+esc(r['Institute Code'])+(regionLabel?' · '+regionLabel:'')+'</span><span>Rank: '+fR(r._rank)+'</span></div></div>';
     return h;
   }).join('');
   var shown=slice.length,tot=pool.length,more=tot-shown;
@@ -1874,6 +2123,19 @@ function jeeStepBar(cur){
 function startJeeForm(){
   if(!CU) return toast('Please log in first.','err');
   if(!JEE_DB.length) return toast('JEE data not loaded. Check jee_data.json.','err');
+  var jeePerc=fP(CU.jeePercentile||0);
+  var jeeRnk=fI(CU.jeeRank||0);
+  if(jeePerc<=0||jeeRnk<=0){
+    toast('Please enter your JEE Mains percentile & rank first.','err');
+    // Scroll to score setup if visible, else show message
+    var setup=document.getElementById('dashScoreSetup');
+    if(setup && setup.style.display!=='none'){
+      setup.scrollIntoView({behavior:'smooth'});
+    } else {
+      openModal('m-reqchange');
+    }
+    return;
+  }
   var jeePerc = fP(CU.jeePercentile||CU.percentile||0);
   JFS={
     id:uid(),
@@ -2340,6 +2602,31 @@ function jViewForm(fid){
 function jPrintViewPDF(){
   var f=getCachedForms(CU.id).find(function(f){return f.id===JEE_VF_ID;});
   if(f) genJeePDF(f);
+}
+
+function saveScores() {
+  const payload = {
+    id: currentUser.id,
+    percentile: Number(document.getElementById('setupPct').value) || 0,
+    rank: Number(document.getElementById('setupRank').value) || 0,
+    jeePercentile: Number(document.getElementById('setupJeePct').value) || 0,
+    jeeRank: Number(document.getElementById('setupJeeRank').value) || 0
+  };
+
+  fetch(SCRIPT_URL + '?action=saveScores', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.ok) {
+      alert('Scores saved successfully!');
+      location.reload();
+    } else {
+      alert('Error saving scores');
+    }
+  })
+  .catch(() => alert('Network error'));
 }
 // ═══ INIT ═══
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',loadData);}else{loadData();}
