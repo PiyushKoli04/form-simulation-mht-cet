@@ -672,8 +672,11 @@ tr:hover td{background:var(--row-hover);}
     <div style="background:var(--bg);border:1.5px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:13px;color:#1d4ed8;line-height:1.6">
       &#128310; Colleges below are filtered from the JEE Mains cutoff data based on your JEE percentile. Aspirational colleges (up to +6 percentile) are also shown.
     </div>
-    <label>Branches <span class="chip" id="jBCount" style="margin-left:6px;background:#eff6ff;color:#1d4ed8">0 selected</span></label>
-    <div class="b-chips" id="jBChips"></div>
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;margin-bottom:6px;flex-wrap:wrap;gap:8px">
+  <label style="margin:0">Branches <span class="chip" id="jBCount" style="margin-left:6px;background:#eff6ff;color:#1d4ed8">0 selected</span></label>
+  <button class="btn btn-ghost btn-xs" onclick="jSelectAllBranches()" id="jSelAllBtn">Select All Branches</button>
+</div>
+<div id="jBChips"></div>
     <label style="margin-top:16px">Region (optional)</label>
     <select id="jRegSel" style="margin-top:4px"><option value="">All Regions</option></select>
     <div id="js1Err" class="err"></div>
@@ -937,6 +940,47 @@ function isFemaleCollege(row){
   return code.endsWith('F');
 }
 
+var JEE_BRANCH_GROUPS=[
+  {
+    label:'💻 Computer Science & IT',
+    keywords:['Computer','Information Technology','Cyber','Data Science','Software','Artificial Intelligence','Machine Learning','Internet of Things','IoT','5G','VLSI','Cloud','Blockchain']
+  },
+  {
+    label:'⚡ Electrical & Electronics',
+    keywords:['Electrical','Electronics','Telecommunication','Instrumentation','Control','Power','VLSI','Communication']
+  },
+  {
+    label:'⚙️ Mechanical & Production',
+    keywords:['Mechanical','Production','Manufacturing','Automobile','Automotive','Robotics','Mechatronics','Industrial','Automation','Rail','Sandwich']
+  },
+  {
+    label:'🏗️ Civil & Structural',
+    keywords:['Civil','Structural','Planning','Environmental','Infrastructure','Survey']
+  },
+  {
+    label:'🧪 Chemical & Process',
+    keywords:['Chemical','Petro','Petroleum','Pharmaceutical','Polymer','Plastic','Paint','Oil','Rubber','Dye','Textile Chemistry','Surfactant','Fine Chemical']
+  },
+  {
+    label:'🧬 Bio & Biomedical',
+    keywords:['Bio Medical','Bio Technology','Biomedical','Food','Pulp','Paper']
+  },
+  {
+    label:'🏭 Other Engineering',
+    keywords:['Mining','Metallurgy','Material','Safety','Fire','Printing','Packing','Surface Coating','Textile','Fashion','Fibre']
+  }
+];
+
+function getJeeBranchGroup(branchName){
+  var b=branchName.toLowerCase();
+  for(var i=0;i<JEE_BRANCH_GROUPS.length;i++){
+    var grp=JEE_BRANCH_GROUPS[i];
+    for(var j=0;j<grp.keywords.length;j++){
+      if(b.includes(grp.keywords[j].toLowerCase())) return i;
+    }
+  }
+  return JEE_BRANCH_GROUPS.length;
+}
 // ═══ API — GET for reads, POST for writes ═══
 async function api(action, payload, forcePost){
   if(!API_URL || API_URL==='YOUR_APPS_SCRIPT_WEB_APP_URL_HERE'){
@@ -2152,16 +2196,65 @@ function startJeeForm(){
   renderJeeS1();
   showPage('jee-step1');
 }
-
+function jSelectAllBranches(){
+  var btn=document.getElementById('jSelAllBtn');
+  var allSel=(JFS.branches.length===JEE_ALL_BR.length);
+  if(allSel){
+    JFS.branches=[];
+    document.querySelectorAll('#jBChips .bchip').forEach(function(c){
+      c.classList.remove('sel');
+      c.style.borderColor='';c.style.color='';c.style.background='';
+    });
+    if(btn) btn.textContent='Select All Branches';
+  } else {
+    JFS.branches=JEE_ALL_BR.slice();
+    document.querySelectorAll('#jBChips .bchip').forEach(function(c){
+      c.classList.add('sel');
+      c.style.borderColor='#3b82f6';c.style.color='#1d4ed8';c.style.background='#eff6ff';
+    });
+    if(btn) btn.textContent='Deselect All';
+  }
+  jRenderBranchGroupCounts();
+  updJBC();
+}
 // ─── JEE Step 1 render ───
 function renderJeeS1(){
   document.getElementById('jsb1').innerHTML=jeeStepBar(1);
-  // Populate branch chips
-  document.getElementById('jBChips').innerHTML=JEE_ALL_BR.map(function(b){
-    return '<div class="bchip'+(JFS.branches.includes(b)?' sel':'')+
-      '" style="'+(JFS.branches.includes(b)?'border-color:#3b82f6;color:#1d4ed8;background:#eff6ff;':'')+
-      '" onclick="jToggleB(this,\''+esc(b)+'\')">'+esc(b)+'</div>';
-  }).join('');
+
+  // Build grouped branch picker (same pattern as MHT-CET)
+  var grouped={};
+  JEE_ALL_BR.forEach(function(b){
+    var g=getJeeBranchGroup(b);
+    if(!grouped[g]) grouped[g]=[];
+    grouped[g].push(b);
+  });
+
+  var html='';
+  for(var i=0;i<=JEE_BRANCH_GROUPS.length;i++){
+    var branches=grouped[i]||[];
+    if(!branches.length) continue;
+    var grp=JEE_BRANCH_GROUPS[i]||{label:'🔧 Other Engineering'};
+    var selCount=branches.filter(function(b){return JFS.branches.includes(b);}).length;
+    var allSel=selCount===branches.length&&branches.length>0;
+    html+='<div class="brgroup'+(selCount>0?' open':'')+'" id="jbrgrp-'+i+'">';
+    html+='<div class="brgroup-hdr" onclick="jToggleBrGroup('+i+')">';
+    html+='<div class="brgroup-hdr-left">';
+    html+='<span class="brgroup-title">'+esc(grp.label)+'</span>';
+    html+='<span class="brgroup-count" id="jbrgrp-cnt-'+i+'">'+selCount+'/'+branches.length+'</span>';
+    html+='</div>';
+    html+='<button class="brgroup-selall" style="border-color:#3b82f6;color:#1d4ed8;background:#eff6ff" onclick="jSelectAllInGroup(event,'+i+')">'+(allSel?'✓ All selected':'Select all')+'</button>';
+    html+='<span class="brgroup-arrow">▶</span>';
+    html+='</div>';
+    html+='<div class="brgroup-body">';
+    branches.forEach(function(b){
+      html+='<div class="bchip'+(JFS.branches.includes(b)?' sel':'')+
+        '" style="'+(JFS.branches.includes(b)?'border-color:#3b82f6;color:#1d4ed8;background:#eff6ff;':'')+
+        '" onclick="jToggleB(this,\''+esc(b.replace(/'/g,"\\'"))+'\')">'+esc(b)+'</div>';
+    });
+    html+='</div></div>';
+  }
+  document.getElementById('jBChips').innerHTML=html;
+
   // Populate region selector
   var rs=document.getElementById('jRegSel');
   rs.innerHTML='<option value="">All Regions</option>'+JEE_ALL_REGIONS.map(function(r){
@@ -2170,14 +2263,73 @@ function renderJeeS1(){
   updJBC();
 }
 
-function jToggleB(el,b){
+function jToggleBrGroup(i){
+  var el=document.getElementById('jbrgrp-'+i);
+  if(el) el.classList.toggle('open');
+}
+function jToggleB(el, b) {
   el.classList.toggle('sel');
-  el.style.borderColor=el.classList.contains('sel')?'#3b82f6':'';
-  el.style.color=el.classList.contains('sel')?'#1d4ed8':'';
-  el.style.background=el.classList.contains('sel')?'#eff6ff':'';
-  var i=JFS.branches.indexOf(b);
-  if(i>-1) JFS.branches.splice(i,1); else JFS.branches.push(b);
+  var i = JFS.branches.indexOf(b);
+  if (i > -1) {
+    JFS.branches.splice(i, 1);
+    el.style.borderColor = '';
+    el.style.color = '';
+    el.style.background = '';
+  } else {
+    JFS.branches.push(b);
+    el.style.borderColor = '#3b82f6';
+    el.style.color = '#1d4ed8';
+    el.style.background = '#eff6ff';
+  }
   updJBC();
+  jRenderBranchGroupCounts();
+}
+function jSelectAllInGroup(e,i){
+  e.stopPropagation();
+  var grpEl=document.getElementById('jbrgrp-'+i);
+  if(!grpEl) return;
+  var chips=grpEl.querySelectorAll('.bchip');
+  var branches=[];
+  chips.forEach(function(c){branches.push(c.textContent.trim());});
+  var allSel=branches.every(function(b){return JFS.branches.includes(b);});
+  if(allSel){
+    branches.forEach(function(b){
+      var idx=JFS.branches.indexOf(b);
+      if(idx>-1) JFS.branches.splice(idx,1);
+    });
+    chips.forEach(function(c){
+      c.classList.remove('sel');
+      c.style.borderColor='';c.style.color='';c.style.background='';
+    });
+  } else {
+    branches.forEach(function(b){
+      if(!JFS.branches.includes(b)) JFS.branches.push(b);
+    });
+    chips.forEach(function(c){
+      c.classList.add('sel');
+      c.style.borderColor='#3b82f6';c.style.color='#1d4ed8';c.style.background='#eff6ff';
+    });
+  }
+  updJBC();
+  var cnt=grpEl.querySelector('#jbrgrp-cnt-'+i);
+  var btn=grpEl.querySelector('.brgroup-selall');
+  var newSel=JFS.branches.filter(function(b){return branches.includes(b);}).length;
+  if(cnt) cnt.textContent=newSel+'/'+branches.length;
+  if(btn) btn.textContent=(newSel===branches.length?'✓ All selected':'Select all');
+}
+
+function jRenderBranchGroupCounts(){
+  for(var i=0;i<=JEE_BRANCH_GROUPS.length;i++){
+    var grpEl=document.getElementById('jbrgrp-'+i);
+    if(!grpEl) continue;
+    var chips=grpEl.querySelectorAll('.bchip');
+    var total=chips.length,selCount=0;
+    chips.forEach(function(c){if(c.classList.contains('sel'))selCount++;});
+    var cnt=grpEl.querySelector('#jbrgrp-cnt-'+i);
+    var btn=grpEl.querySelector('.brgroup-selall');
+    if(cnt) cnt.textContent=selCount+'/'+total;
+    if(btn) btn.textContent=(selCount===total&&total>0?'✓ All selected':'Select all');
+  }
 }
 function updJBC(){document.getElementById('jBCount').textContent=JFS.branches.length+' selected';}
 
